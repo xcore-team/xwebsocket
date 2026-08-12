@@ -5,7 +5,8 @@ from dataclasses import dataclass
 from typing import Any, Optional
 
 from fastapi import Request, WebSocket, WebSocketDisconnect
-from xcore.kernel.api.rbac import AuthPayload, get_current_user
+from xcore.kernel.api.auth import AuthPayload
+from xcore.kernel.api.rbac import get_current_user
 from xcore.services.base import BaseService, ServiceStatus
 
 from .ws import WebSocketManager
