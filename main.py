@@ -5,8 +5,7 @@ from dataclasses import dataclass
 from typing import Any, Optional
 
 from fastapi import Request, WebSocket, WebSocketDisconnect
-from xcore.kernel.api.auth import AuthPayload
-from xcore.kernel.api.rbac import get_current_user
+from xcore.kernel.api.auth import AuthPayload, get_auth_backend
 from xcore.services.base import BaseService, ServiceStatus
 
 from .ws import WebSocketManager
@@ -43,12 +42,12 @@ class WsManager(BaseService):
         self._status = ServiceStatus.STOPPED
 
     async def ws_endpoint(self, ws: WebSocket, request: Request, channel: str):
-        response: AuthPayload = await get_current_user(request)
+        response: AuthPayload = await self._resolve_auth(request)
 
         # Sécurité
         if not self.configuration or channel not in self.configuration.channel:
             print(
-                f"[WS SECURITY] User {response.get('sub')} denied access to channel "
+                f"[WS SECURITY] User {response.get('sub') if response else None} denied access to channel "
                 f"'{channel}' (missing module {channel})"
             )
             await ws.accept()
@@ -58,7 +57,7 @@ class WsManager(BaseService):
         client_id = str(uuid.uuid4())
 
         inf: dict[str, str] = {
-            "sub": str(response.get("sub")),
+            "sub": str(response.get("sub")) if response else "",
             "channel": str(channel),
         }
         self.client_ids[client_id] = inf
@@ -70,7 +69,8 @@ class WsManager(BaseService):
             return
 
         await self.ws.connect(
-            channel=channel, client_id=client_id, ws=ws, user_id=response.get("sub")
+            channel=channel, client_id=client_id, ws=ws,
+            user_id=response.get("sub") if response else None,
         )
 
         try:
@@ -83,6 +83,15 @@ class WsManager(BaseService):
             print(f"[WS] Deconnexion inattendue {client_id[:8]} sur {channel}: {e}")
             await self.ws.disconnect(channel=channel, client_id=client_id)
             self.client_ids.pop(client_id, None)
+
+    async def _resolve_auth(self, request: Request) -> AuthPayload | None:
+        backend = get_auth_backend()
+        if backend is None:
+            return None
+        token = await backend.extract_token(request)
+        if token is None:
+            return None
+        return await backend.decode_token(token)
 
     async def broadcast(self, channel: str, event: str, data: Any):
         if self.ws is not None:

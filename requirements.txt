@@ -1,2 +1,0 @@
-fastapi>=0.110.0
-xcore @ git+https://github.com/traoreera/xcore.git
