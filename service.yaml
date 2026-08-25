@@ -5,5 +5,5 @@ description: >
   Extension XCore de gestion WebSocket multi-canal.
   Gère la connexion, déconnexion, broadcast par canal et présence des utilisateurs.
   Canaux configurables dans integration.yaml (user, admin, broadcast, platform).
-homepage: https://github.com/traoreera/xcore
-repository: https://github.com/traoreera/xcore
+homepage: https://github.com/xcore-team/xwebsocket
+repository: https://github.com/xcore-team/xwebsocket
